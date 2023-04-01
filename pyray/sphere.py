@@ -1,6 +1,7 @@
 from __future__ import annotations
 import math
 from pyray.object import Object
+from pyray.point_3d import Point3D
 from pyray.ray import Ray
 
 
@@ -29,4 +30,4 @@ class Sphere(Object):
         return -1.0
 
     def normal(self, point):
-        return point.sub(self.center).normalize()
+        return Point3D(point.sub(self.center).normalize())

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import math
 import random
+import numpy as np
 
 
 class Point3D:
@@ -25,6 +26,9 @@ class Point3D:
 
     def mul(self, factor: float) -> Point3D:
         return Point3D(self.x * factor, self.y * factor, self.z * factor)
+
+    def mul_vec(self, vector) -> Point3D:
+        return Point3D(self.x * vector.x, self.y * vector.y, self.z * vector.z)
 
     def normalize(self) -> Point3D:
         factor = 1.0 / math.sqrt(self.dot(self))
