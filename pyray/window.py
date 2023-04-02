@@ -7,7 +7,6 @@ from pyray.renderer import Renderer
 from pyray.scene import Scene
 from pyray.sphere import Sphere
 from functools import partial
-import time
 
 
 class WorkerThread(QThread):
@@ -44,7 +43,6 @@ class Window(QWidget):
         self.img = QImage(self.render_width, self.render_height, QImage.Format.Format_ARGB32)
         self.settings = None
         self.viewport = None
-
         self.renderer = None
         self.scene = None
 
@@ -103,29 +101,39 @@ class Window(QWidget):
         self.show()
 
     def load_scene(self, number):
+        red = Color(217, 59, 59)
+        green = Color(39, 163, 60)
+        white = Color(255, 255, 255)
+        grey = Color(180, 180, 180)
         match number:
             case 1:
-                sphere1 = Sphere(Point3D(0.0, -3.5, 3.0), 2, Color(255, 255, 255), True)
-                sphere2 = Sphere(Point3D(8.0, 0.0, 3.0), 6, Color(255, 0, 0), False)
-                sphere3 = Sphere(Point3D(-8.0, 0.0, 3.0), 6, Color(0, 255, 0), False)
-                sphere4 = Sphere(Point3D(0.0, 8.0, 3.0), 6, Color(0, 0, 255), False)
-                sphere5 = Sphere(Point3D(0.0, -8.0, 3.0), 6, Color(255, 255, 255), False)
-                sphere6 = Sphere(Point3D(0.0, 1.5, 3.0), 0.75, Color(0, 255, 0), False)
-                sphere7 = Sphere(Point3D(0.0, 0.48, 3.0), 0.33, Color(255, 255, 255), True)
-                sphere8 = Sphere(Point3D(0.0, 0.0, -7.5), 6, Color(255, 255, 255), False)
+                sphere1 = Sphere(Point3D([0.0, -3.5, 3.0]), 2, white, True)
+                sphere2 = Sphere(Point3D([8.0, 0.0, 3.0]), 6, red, False)
+                sphere3 = Sphere(Point3D([-8.0, 0.0, 3.0]), 6, green, False)
+                sphere4 = Sphere(Point3D([0.0, 8.0, 3.0]), 6, grey, False)
+                sphere5 = Sphere(Point3D([0.0, -8.0, 3.0]), 6, grey, False)
+                sphere6 = Sphere(Point3D([0.0, 1.5, 3.0]), 0.75, green, False)
+                sphere7 = Sphere(Point3D([0.0, 0.48, 3.0]), 0.33, white, True)
+                sphere8 = Sphere(Point3D([0.0, 0.0, -7.5]), 6, grey, False)
                 self.scene = Scene(sphere1, sphere2, sphere3, sphere4, sphere5, sphere6, sphere7, sphere8)
             case 2:
-                sphere1 = Sphere(Point3D(0.0, -3.5, 3.0), 2, Color(255, 255, 255), True)
-                sphere2 = Sphere(Point3D(8.0, 0.0, 3.0), 6, Color(255, 255, 255), False)
-                self.scene = Scene(sphere1, sphere2)
+                light_sphere = Sphere(Point3D([0.0, -6.3, 3.0]), 2, white, True)
+                sphere2 = Sphere(Point3D([1.5, -0.3, 3.0]), 0.415, red, False)
+                sphere3 = Sphere(Point3D([-5.339, -1.948, -16.014]), 6, green, False)
+                ground_sphere = Sphere(Point3D([0.0, 50.0, 3.0]), 50, grey, False)
+                sphere5 = Sphere(Point3D([0, -0.75, 3]), 0.75, grey, False)
+                sphere6 = Sphere(Point3D([21, -2, 22]), 11, green, False)
+                sphere7 = Sphere(Point3D([-1.5, -1.95, 28.4]), 6, white, True)
+                sphere8 = Sphere(Point3D([-23.5, -2, 17.8]), 8, grey, False)
+                self.scene = Scene(light_sphere, ground_sphere, sphere2, sphere3, sphere7, sphere8, sphere5, sphere6)
             case 3:
-                sphere1 = Sphere(Point3D(0.0, -3.5, 3.0), 2, Color(255, 255, 255), True)
+                sphere1 = Sphere(Point3D([0.0, -3.5, 3.0]), 2, Color(255, 255, 255), True)
                 self.scene = Scene(sphere1)
 
         self.init_renderer()
 
     def init_renderer(self):
-        self.renderer = Renderer(self, self.scene, Point3D(0, 0, 10))
+        self.renderer = Renderer(self, self.scene, Point3D([0.0, -2.0, 12.5]))
 
     def start_render_thread(self):
         self.worker_thread = WorkerThread(self.renderer)
@@ -140,5 +148,3 @@ class Window(QWidget):
 
     def update_screen(self):
         self.viewport.setPixmap(QPixmap.fromImage(self.img.scaled(self.viewport_width, self.viewport_height)))
-        self.viewport.update()
-        self.update()

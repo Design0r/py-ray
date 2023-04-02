@@ -13,7 +13,7 @@ class Sphere(Object):
         self.is_emitter = is_emitter
 
     def intersect(self, ray: Ray):
-        v = ray.origin.sub(self.center)
+        v = ray.origin - self.center
         a = ray.direction.dot(ray.direction)
         b = 2.0 * ray.direction.dot(v)
         c = v.dot(v) - self.radius * self.radius
@@ -30,4 +30,4 @@ class Sphere(Object):
         return -1.0
 
     def normal(self, point):
-        return Point3D(point.sub(self.center).normalize())
+        return (point - self.center).normalize()
