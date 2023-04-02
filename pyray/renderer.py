@@ -65,8 +65,7 @@ class Renderer:
                 hit_object = sphere
 
         if (hit_distance >= 5000.0):
-            # return Color(163, 198, 255)
-            return Color(0, 0, 0)
+            return Color(163, 198, 255)
         if hit_object.is_emitter:
             return hit_object.color
         if current_depth == self.max_depth:
