@@ -1,13 +1,9 @@
-import dearpygui.dearpygui as dpg
-import dearpygui.demo as demo
 from pyray.color import Color
 from pyray.point_3d import Point3D
 from pyray.renderer import Renderer
 from pyray.scene import Scene
-import numpy as np
 from pyray.sphere import Sphere
 from functools import partial
-# demo.show_demo()
 
 
 class RenderUI:

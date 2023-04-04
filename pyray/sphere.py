@@ -1,7 +1,6 @@
 from __future__ import annotations
 import math
 from pyray.object import Object
-from pyray.point_3d import Point3D
 from pyray.ray import Ray
 
 

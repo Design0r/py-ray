@@ -5,7 +5,7 @@ from PySide6.QtGui import *
 from pyray.point_3d import Point3D
 from pyray.ray import Ray
 from pyray.color import Color
-import numpy as np
+import array
 
 
 class Renderer:
@@ -17,7 +17,7 @@ class Renderer:
         self.camera = camera
         self.max_depth = 10
         self.samples = 0
-        self.buffer = np.zeros((self.width * self.height * 3))
+        self.buffer = array.array("f", [0.0] * (self.width * self.height * 3))
 
     def calculate(self):
         i = 0
@@ -79,7 +79,7 @@ class Renderer:
         #    random_point = random_point.negate()
         #reflection_ray = Ray(hit_point, random_point.normalize())
 
-        reflection_ray = Ray(hit_point, Point3D.reflect_vector((ray.direction.x, ray.direction.y, ray.direction.z), (normal.x, normal.y, normal.z)))
+        reflection_ray = Ray(hit_point, Point3D.reflect_vector(ray.direction, normal))
         return_color = self.trace(reflection_ray, current_depth + 1)
 
         r = hit_object.color.r * return_color.r / 255

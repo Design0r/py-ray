@@ -7,6 +7,8 @@ from pyray.renderer import Renderer
 from pyray.scene import Scene
 from pyray.sphere import Sphere
 from functools import partial
+import cProfile
+import pstats
 
 
 class WorkerThread(QThread):
@@ -139,6 +141,13 @@ class Window(QWidget):
         self.worker_thread = WorkerThread(self.renderer)
         self.worker_thread.progress_signal.connect(self.update_progress_label)
         self.worker_thread.start()
+        # with cProfile.Profile() as pr:
+        #    self.renderer.calculate()
+
+        #stats = pstats.Stats(pr)
+        # stats.sort_stats(pstats.SortKey.TIME)
+        # stats.print_stats()
+        # stats.dump_stats(filename="render_profiling.prof")
 
     def stop_worker_thread(self):
         self.worker_thread.quit()
