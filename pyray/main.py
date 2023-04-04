@@ -4,6 +4,6 @@ from pyray.window import Window
 
 
 app = QApplication(sys.argv)
-window = Window((1000, 700), (128, 128))
+update_screen = Window((1000, 700))
 
 sys.exit(app.exec())

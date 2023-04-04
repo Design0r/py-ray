@@ -7,8 +7,6 @@ from pyray.renderer import Renderer
 from pyray.scene import Scene
 from pyray.sphere import Sphere
 from functools import partial
-import cProfile
-import pstats
 
 
 class WorkerThread(QThread):
@@ -31,22 +29,24 @@ class WorkerThread(QThread):
         message = "Thread finished"
         self.finished_signal.emit(message)
 
-    def quit(self) -> None:
+    def stop(self) -> None:
         self.stop_flag = True
-        return super().quit()
 
 
 class Window(QWidget):
-    def __init__(self, window_dimensions, render_resolution, parent=None) -> None:
+    def __init__(self, window_dimensions, parent=None) -> None:
         super().__init__(parent)
         self.width, self.height = window_dimensions
-        self.render_width, self.render_height = render_resolution
+        self.render_width, self.render_height = 128, 128
         self.viewport_width, self.viewport_height = 700, 700
-        self.img = QImage(self.render_width, self.render_height, QImage.Format.Format_ARGB32)
-        self.settings = None
+        self.img = QImage(1, 1, QImage.Format.Format_ARGB32)
+        self.img.setPixel(0, 0, QColor("black").rgb())
         self.viewport = None
         self.renderer = None
         self.scene = None
+        self.camera = Point3D([0.0, -2.0, 12.5])
+        self.ray_depth = 3
+        self.render_thread = None
 
         self.init_ui()
         self.init_renderer()
@@ -65,6 +65,55 @@ class Window(QWidget):
         settings_widget.setFixedSize(self.width - self.viewport_width, self.viewport_height)
         settings_layout = QVBoxLayout()
 
+        # Render Resolution Fields
+        resolution_widget = QWidget()
+        resolution_layout = QHBoxLayout()
+        resolution_widget.setLayout(resolution_layout)
+        settings_layout.addWidget(QLabel("Render Resolution:"))
+        settings_layout.addWidget(resolution_widget)
+
+        resolution_layout.addWidget(QLabel("w:"))
+        render_res_w = QLineEdit(f"{self.render_width}")
+        render_res_w.returnPressed.connect(lambda: self.change_render_res(render_res_w.text(), axis="w"))
+        resolution_layout.addWidget(render_res_w)
+
+        resolution_layout.addWidget(QLabel("h:"))
+        render_res_h = QLineEdit(f"{self.render_height}")
+        render_res_h.returnPressed.connect(lambda: self.change_render_res(render_res_h.text(), axis="h"))
+        resolution_layout.addWidget(render_res_h)
+
+        # Ray Depth Widget
+        ray_depth_widget = QWidget()
+        ray_depth_layout = QHBoxLayout()
+        ray_depth_widget.setLayout(ray_depth_layout)
+        settings_layout.addWidget(QLabel("Ray Depth:"))
+        settings_layout.addWidget(ray_depth_widget)
+
+        ray_depth = QLineEdit(f"{self.ray_depth}")
+        ray_depth_layout.addWidget(ray_depth)
+        ray_depth.returnPressed.connect(lambda: self.change_ray_depth(ray_depth.text()))
+
+        # Camera Transforms
+        camera_transform_widget = QWidget()
+        camera_transform_layout = QHBoxLayout()
+        camera_transform_widget.setLayout(camera_transform_layout)
+        settings_layout.addWidget(QLabel("Camera Transform"))
+        settings_layout.addWidget(camera_transform_widget)
+
+        camera_transform_layout.addWidget(QLabel("x:"))
+        camera_t_x = QLineEdit(f"{self.camera.x}")
+        camera_transform_layout.addWidget(camera_t_x)
+        camera_transform_layout.addWidget(QLabel("y:"))
+        camera_t_y = QLineEdit(f"{self.camera.y}")
+        camera_transform_layout.addWidget(camera_t_y)
+        camera_transform_layout.addWidget(QLabel("z:"))
+        camera_t_z = QLineEdit(f"{self.camera.z}")
+        camera_transform_layout.addWidget(camera_t_z)
+        camera_t_x.returnPressed.connect(lambda: self.change_camera_transform(camera_t_x.text(), transform="translate", axis="x"))
+        camera_t_y.returnPressed.connect(lambda: self.change_camera_transform(camera_t_y.text(), transform="translate", axis="y"))
+        camera_t_z.returnPressed.connect(lambda: self.change_camera_transform(camera_t_z.text(), transform="translate", axis="z"))
+
+        # load Scene Buttons
         load_scene_1_btn = QPushButton("Load Scene 1")
         load_scene_1_btn.clicked.connect(partial(self.load_scene, 1))
         settings_layout.addWidget(load_scene_1_btn)
@@ -86,7 +135,7 @@ class Window(QWidget):
         settings_layout.addWidget(restart_render)
 
         stop_render = QPushButton("Stop Render")
-        stop_render.clicked.connect(self.stop_worker_thread)
+        stop_render.clicked.connect(self.stop_render_thread)
         settings_layout.addWidget(stop_render)
 
         self.progress_label = QLabel("Progress:")
@@ -101,6 +150,30 @@ class Window(QWidget):
         self.setLayout(main_layout)
 
         self.show()
+        self.update_screen()
+
+    def change_render_res(self, resolution, axis="w"):
+        if axis == "w":
+            self.render_width = int(resolution)
+        else:
+            self.render_height = int(resolution)
+
+        self.init_renderer(restart=True)
+
+    def change_ray_depth(self, text):
+        self.ray_depth = int(text)
+        self.init_renderer(restart=True)
+
+    def change_camera_transform(self, text, transform=None, axis=None):
+        match transform, axis:
+            case "translate", "x":
+                self.camera.y = float(text)
+            case "translate", "y":
+                self.camera.y = float(text)
+            case "translate", "z":
+                self.camera.z = float(text)
+
+        self.init_renderer(restart=True)
 
     def load_scene(self, number):
         red = Color(217, 59, 59)
@@ -125,32 +198,38 @@ class Window(QWidget):
                 ground_sphere = Sphere(Point3D([0.0, 50.0, 3.0]), 50, grey, False)
                 sphere5 = Sphere(Point3D([0, -0.75, 3]), 0.75, grey, False)
                 sphere6 = Sphere(Point3D([21, -2, 22]), 11, green, False)
-                sphere7 = Sphere(Point3D([-1.5, -1.95, 28.4]), 6, white, True)
+                #sphere7 = Sphere(Point3D([-1.5, -1.95, 28.4]), 6, white, True)
                 sphere8 = Sphere(Point3D([-23.5, -2, 17.8]), 8, grey, False)
-                self.scene = Scene(light_sphere, ground_sphere, sphere2, sphere3, sphere7, sphere8, sphere5, sphere6)
+                self.scene = Scene(light_sphere, ground_sphere, sphere2, sphere3, sphere8, sphere5, sphere6)
             case 3:
                 sphere1 = Sphere(Point3D([0.0, -3.5, 3.0]), 2, Color(255, 255, 255), True)
                 self.scene = Scene(sphere1)
 
-        self.init_renderer()
+        self.init_renderer(restart=True)
 
-    def init_renderer(self):
-        self.renderer = Renderer(self, self.scene, Point3D([0.0, -2.0, 12.5]))
+    def init_renderer(self, restart=False):
+        self.img = QImage(self.render_width, self.render_height, QImage.Format.Format_ARGB32)
+        self.renderer = Renderer(self.update_screen, self.img, (self.render_width, self.render_height), self.ray_depth, self.scene, self.camera)
+
+        if restart and self.render_thread:
+            self.stop_render_thread()
+            self.start_render_thread()
 
     def start_render_thread(self):
-        self.worker_thread = WorkerThread(self.renderer)
-        self.worker_thread.progress_signal.connect(self.update_progress_label)
-        self.worker_thread.start()
+        self.render_thread = WorkerThread(self.renderer)
+        self.render_thread.progress_signal.connect(self.update_progress_label)
+        self.render_thread.start()
         # with cProfile.Profile() as pr:
         #    self.renderer.calculate()
-
         #stats = pstats.Stats(pr)
         # stats.sort_stats(pstats.SortKey.TIME)
         # stats.print_stats()
         # stats.dump_stats(filename="render_profiling.prof")
 
-    def stop_worker_thread(self):
-        self.worker_thread.quit()
+    def stop_render_thread(self):
+        self.render_thread.stop()
+        self.render_thread.quit()
+        self.render_thread.wait()
 
     def update_progress_label(self, progress):
         self.progress_label.setText(f"Progress: {progress} Samples")

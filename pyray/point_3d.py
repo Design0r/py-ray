@@ -116,8 +116,7 @@ class Point3D:
 
     @staticmethod
     def reflect_vector(i: Point3D, n: Point3D):
-        r = i - (n * (2 * i.dot(n)))
-        return r
+        return i - (n * (2 * i.dot(n)))
 
     def __repr__(self) -> str:
         return f"x: {self.x}, y: {self.y}, z: {self.z}"

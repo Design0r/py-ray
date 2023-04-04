@@ -1,26 +1,28 @@
 from __future__ import annotations
 import math
+from pyray.color import Color
 from pyray.object import Object
 from pyray.ray import Ray
+from pyray.point_3d import Point3D
 
 
 class Sphere(Object):
-    def __init__(self, center, radius, color, is_emitter) -> None:
+    def __init__(self, center: Point3D, radius: float, color: Color, is_emitter: bool) -> None:
         self.center = center
         self.radius = radius
         self.color = color
         self.is_emitter = is_emitter
 
-    def intersect(self, ray: Ray):
-        v = ray.origin - self.center
-        a = ray.direction.dot(ray.direction)
-        b = 2.0 * ray.direction.dot(v)
-        c = v.dot(v) - self.radius * self.radius
+    def intersect(self, ray: Ray) -> float:
+        v: Point3D = ray.origin - self.center
+        a: float = ray.direction.dot(ray.direction)
+        b: float = 2.0 * ray.direction.dot(v)
+        c: float = v.dot(v) - self.radius * self.radius
 
-        discriminant = (b*b) - (4.0 * a * c)
+        discriminant: float = (b*b) - (4.0 * a * c)
         if discriminant > 0:
-            x1 = (-b - math.sqrt(discriminant)) / (2.0 * a)
-            x2 = (-b + math.sqrt(discriminant)) / (2.0 * a)
+            x1: float = (-b - math.sqrt(discriminant)) / (2.0 * a)
+            x2: float = (-b + math.sqrt(discriminant)) / (2.0 * a)
 
             if x1 >= 0 and x2 >= 0:
                 return x1
@@ -28,5 +30,5 @@ class Sphere(Object):
                 return x2
         return -1.0
 
-    def normal(self, point):
+    def normal(self, point: Point3D):
         return (point - self.center).normalize()
