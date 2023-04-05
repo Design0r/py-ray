@@ -7,12 +7,13 @@ from pyray.renderer import Renderer
 from pyray.scene import Scene
 from pyray.sphere import Sphere
 from functools import partial
+import time
 
 
 class WorkerThread(QThread):
     # Define a signal to emit a message when the thread finishes
     finished_signal = Signal(str)
-    progress_signal = Signal(int)
+    progress_signal = Signal(tuple)
 
     def __init__(self, renderer):
         super().__init__()
@@ -21,9 +22,11 @@ class WorkerThread(QThread):
 
     def run(self):
         samples = 0
+        start_time = time.time()
         while not self.stop_flag:
+            sample_time = time.perf_counter()
             self.renderer.calculate()
-            self.progress_signal.emit(samples)
+            self.progress_signal.emit((samples, time.perf_counter() - sample_time, time.time() - start_time))
             samples += 1
             self.msleep(5)
         message = "Thread finished"
@@ -231,8 +234,9 @@ class Window(QWidget):
         self.render_thread.quit()
         self.render_thread.wait()
 
-    def update_progress_label(self, progress):
-        self.progress_label.setText(f"Progress: {progress} Samples")
+    def update_progress_label(self, update):
+        samples, sample_time, overall_time = update
+        self.progress_label.setText(f"Progress:\n\nSamples: {samples} \nTime per Frame: {sample_time:.3f}s\nOverall Time: {overall_time:.0f}s")
 
     def update_screen(self):
         self.viewport.setPixmap(QPixmap.fromImage(self.img.scaled(self.viewport_width, self.viewport_height)))

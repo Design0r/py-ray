@@ -22,8 +22,8 @@ class Renderer:
         i = 0
 
         self.samples += 1
-        for w in range(self.width):
-            for h in range(self.height):
+        for h in range(self.height):
+            for w in range(self.width):
                 color = self.compute_sample(w, h)
                 self.buffer[i * 3 + 0] += color.r
                 self.buffer[i * 3 + 1] += color.g
