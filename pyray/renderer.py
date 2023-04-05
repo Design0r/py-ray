@@ -68,8 +68,7 @@ class Renderer:
         if (hit_distance >= 5000.0):
             return self.sky_color
         if hit_object.is_emitter:
-            # return hit_object.color
-            return Color(255 * hit_object.intensity, 255 * hit_object.intensity, 255 * hit_object.intensity)
+            return hit_object.color * hit_object.intensity
         if current_depth >= self.max_depth:
             return Color(0, 0, 0)
 
