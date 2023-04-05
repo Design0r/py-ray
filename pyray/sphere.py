@@ -7,11 +7,13 @@ from pyray.point_3d import Point3D
 
 
 class Sphere(Object):
-    def __init__(self, center: Point3D, radius: float, color: Color, is_emitter: bool) -> None:
+    def __init__(self, center: Point3D, radius: float, color: Color, roughness: float, is_emitter: bool, intensity=1) -> None:
         self.center = center
         self.radius = radius
         self.color = color
+        self.roughness = roughness
         self.is_emitter = is_emitter
+        self.intensity = intensity
 
     def intersect(self, ray: Ray) -> float:
         v: Point3D = ray.origin - self.center

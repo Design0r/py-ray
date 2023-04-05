@@ -11,7 +11,6 @@ import time
 
 
 class WorkerThread(QThread):
-    # Define a signal to emit a message when the thread finishes
     finished_signal = Signal(str)
     progress_signal = Signal(tuple)
 
@@ -50,6 +49,7 @@ class Window(QWidget):
         self.camera = Point3D([0.0, -2.0, 12.5])
         self.ray_depth = 3
         self.render_thread = None
+        self.sky_color = Color(184, 211, 254)
 
         self.init_ui()
         self.init_renderer()
@@ -104,17 +104,37 @@ class Window(QWidget):
         settings_layout.addWidget(camera_transform_widget)
 
         camera_transform_layout.addWidget(QLabel("x:"))
-        camera_t_x = QLineEdit(f"{self.camera.x}")
+        camera_t_x = QLineEdit(f"{self.camera.x * -1}")
         camera_transform_layout.addWidget(camera_t_x)
         camera_transform_layout.addWidget(QLabel("y:"))
-        camera_t_y = QLineEdit(f"{self.camera.y}")
+        camera_t_y = QLineEdit(f"{self.camera.y * -1}")
         camera_transform_layout.addWidget(camera_t_y)
         camera_transform_layout.addWidget(QLabel("z:"))
-        camera_t_z = QLineEdit(f"{self.camera.z}")
+        camera_t_z = QLineEdit(f"{self.camera.z * -1}")
         camera_transform_layout.addWidget(camera_t_z)
         camera_t_x.returnPressed.connect(lambda: self.change_camera_transform(camera_t_x.text(), transform="translate", axis="x"))
         camera_t_y.returnPressed.connect(lambda: self.change_camera_transform(camera_t_y.text(), transform="translate", axis="y"))
         camera_t_z.returnPressed.connect(lambda: self.change_camera_transform(camera_t_z.text(), transform="translate", axis="z"))
+
+        # Sky Color
+        sky_color_widget = QWidget()
+        sky_color_layout = QHBoxLayout()
+        sky_color_widget.setLayout(sky_color_layout)
+        settings_layout.addWidget(QLabel("Skydome Color:"))
+        settings_layout.addWidget(sky_color_widget)
+
+        sky_color_layout.addWidget(QLabel("r:"))
+        sky_color_r = QLineEdit(f"{self.sky_color.r}")
+        sky_color_layout.addWidget(sky_color_r)
+        sky_color_layout.addWidget(QLabel("g:"))
+        sky_color_g = QLineEdit(f"{self.sky_color.g}")
+        sky_color_layout.addWidget(sky_color_g)
+        sky_color_layout.addWidget(QLabel("b:"))
+        sky_color_b = QLineEdit(f"{self.sky_color.b}")
+        sky_color_layout.addWidget(sky_color_b)
+        sky_color_r.returnPressed.connect(lambda: self.change_sky_color(sky_color_r.text(), axis="r"))
+        sky_color_g.returnPressed.connect(lambda: self.change_sky_color(sky_color_g.text(), axis="g"))
+        sky_color_b.returnPressed.connect(lambda: self.change_sky_color(sky_color_b.text(), axis="b"))
 
         # load Scene Buttons
         load_scene_1_btn = QPushButton("Load Scene 1")
@@ -141,7 +161,7 @@ class Window(QWidget):
         stop_render.clicked.connect(self.stop_render_thread)
         settings_layout.addWidget(stop_render)
 
-        self.progress_label = QLabel("Progress:")
+        self.progress_label = QLabel("")
         settings_layout.addWidget(self.progress_label)
 
         settings_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -170,11 +190,22 @@ class Window(QWidget):
     def change_camera_transform(self, text, transform=None, axis=None):
         match transform, axis:
             case "translate", "x":
-                self.camera.y = float(text)
+                self.camera.y = float(text) * -1
             case "translate", "y":
-                self.camera.y = float(text)
+                self.camera.y = float(text) * -1
             case "translate", "z":
-                self.camera.z = float(text)
+                self.camera.z = float(text) * -1
+
+        self.init_renderer(restart=True)
+
+    def change_sky_color(self, text, axis=None):
+        match axis:
+            case "r":
+                self.sky_color.r = int(text)
+            case "g":
+                self.sky_color.g = int(text)
+            case "b":
+                self.sky_color.b = int(text)
 
         self.init_renderer(restart=True)
 
@@ -185,34 +216,34 @@ class Window(QWidget):
         grey = Color(180, 180, 180)
         match number:
             case 1:
-                sphere1 = Sphere(Point3D([0.0, -3.5, 3.0]), 2, white, True)
-                sphere2 = Sphere(Point3D([8.0, 0.0, 3.0]), 6, red, False)
-                sphere3 = Sphere(Point3D([-8.0, 0.0, 3.0]), 6, green, False)
-                sphere4 = Sphere(Point3D([0.0, 8.0, 3.0]), 6, grey, False)
-                sphere5 = Sphere(Point3D([0.0, -8.0, 3.0]), 6, grey, False)
-                sphere6 = Sphere(Point3D([0.0, 1.5, 3.0]), 0.75, green, False)
-                sphere7 = Sphere(Point3D([0.0, 0.48, 3.0]), 0.33, white, True)
-                sphere8 = Sphere(Point3D([0.0, 0.0, -7.5]), 6, grey, False)
+                sphere1 = Sphere(Point3D([0.0, -3.5, 3.0]), 2, white, 0.0, True, intensity=10)
+                sphere2 = Sphere(Point3D([8.0, 0.0, 3.0]), 6, red, 1.0, False)
+                sphere3 = Sphere(Point3D([-8.0, 0.0, 3.0]), 6, green, 1.0, False)
+                sphere4 = Sphere(Point3D([0.0, 8.0, 3.0]), 6, grey, 1.0, False)
+                sphere5 = Sphere(Point3D([0.0, -8.0, 3.0]), 6, grey, 1.0, False)
+                sphere6 = Sphere(Point3D([0.0, 1.5, 3.0]), 0.75, green, 0.2, False)
+                sphere7 = Sphere(Point3D([0.0, 0.48, 3.0]), 0.33, white, 1.0, True)
+                sphere8 = Sphere(Point3D([0.0, 0.0, -7.5]), 6, grey, 0.2, False)
                 self.scene = Scene(sphere1, sphere2, sphere3, sphere4, sphere5, sphere6, sphere7, sphere8)
             case 2:
-                light_sphere = Sphere(Point3D([0.0, -6.3, 3.0]), 2, white, True)
-                sphere2 = Sphere(Point3D([1.5, -0.3, 3.0]), 0.415, red, False)
-                sphere3 = Sphere(Point3D([-5.339, -1.948, -16.014]), 6, green, False)
-                ground_sphere = Sphere(Point3D([0.0, 50.0, 3.0]), 50, grey, False)
-                sphere5 = Sphere(Point3D([0, -0.75, 3]), 0.75, grey, False)
-                sphere6 = Sphere(Point3D([21, -2, 22]), 11, green, False)
+                light_sphere = Sphere(Point3D([0.0, -6.3, 3.0]), 2, white, 1.0, True, intensity=10)
+                sphere2 = Sphere(Point3D([1.5, -0.3, 3.0]), 0.415, red, 0.0, False)
+                sphere3 = Sphere(Point3D([-5.339, -1.948, -16.014]), 6, green, 0.2, False)
+                ground_sphere = Sphere(Point3D([0.0, 50.0, 3.0]), 50, grey, 0.5, False)
+                sphere5 = Sphere(Point3D([0, -0.75, 3]), 0.75, grey, 0.8, False)
+                sphere6 = Sphere(Point3D([21, -2, 22]), 11, green, 1.0, False)
                 #sphere7 = Sphere(Point3D([-1.5, -1.95, 28.4]), 6, white, True)
-                sphere8 = Sphere(Point3D([-23.5, -2, 17.8]), 8, grey, False)
+                sphere8 = Sphere(Point3D([-23.5, -2, 17.8]), 8, grey, 1.0, False)
                 self.scene = Scene(light_sphere, ground_sphere, sphere2, sphere3, sphere8, sphere5, sphere6)
             case 3:
-                sphere1 = Sphere(Point3D([0.0, -3.5, 3.0]), 2, Color(255, 255, 255), True)
+                sphere1 = Sphere(Point3D([0.0, -3.5, 3.0]), 2, Color(255, 255, 255), 1.0, True)
                 self.scene = Scene(sphere1)
 
         self.init_renderer(restart=True)
 
     def init_renderer(self, restart=False):
         self.img = QImage(self.render_width, self.render_height, QImage.Format.Format_ARGB32)
-        self.renderer = Renderer(self.update_screen, self.img, (self.render_width, self.render_height), self.ray_depth, self.scene, self.camera)
+        self.renderer = Renderer(self.update_screen, self.img, (self.render_width, self.render_height), self.ray_depth, self.scene, self.camera, self.sky_color)
 
         if restart and self.render_thread:
             self.stop_render_thread()
@@ -236,7 +267,7 @@ class Window(QWidget):
 
     def update_progress_label(self, update):
         samples, sample_time, overall_time = update
-        self.progress_label.setText(f"Progress:\n\nSamples: {samples} \nTime per Frame: {sample_time:.3f}s\nOverall Time: {overall_time:.0f}s")
+        self.progress_label.setText(f"\nProgress:\n\nSamples: {samples} \nTime per Frame: {sample_time:.3f}s\nOverall Time: {overall_time:.0f}s")
 
     def update_screen(self):
         self.viewport.setPixmap(QPixmap.fromImage(self.img.scaled(self.viewport_width, self.viewport_height)))

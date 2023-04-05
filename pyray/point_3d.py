@@ -115,8 +115,16 @@ class Point3D:
         return Point3D([x, y, z]).normalize()
 
     @staticmethod
-    def reflect_vector(i: Point3D, n: Point3D):
-        return i - (n * (2 * i.dot(n)))
+    def reflect_vector(i: Point3D, n: Point3D, roughness: float):
+        # Calculate the reflection vector without roughness
+        reflection_vector = i - (n * (2 * i.dot(n)))
+
+        # Add random roughness
+        roughness_vector = Point3D([random.uniform(-1, 1), random.uniform(-1, 1), random.uniform(-1, 1)])
+        roughness_vector.normalize()
+        reflection_vector += roughness_vector * roughness
+
+        return reflection_vector
 
     def __repr__(self) -> str:
         return f"x: {self.x}, y: {self.y}, z: {self.z}"

@@ -5,10 +5,11 @@ from pyray.point_3d import Point3D
 from pyray.ray import Ray
 from pyray.color import Color
 import array
+from multiprocessing import Pool
 
 
 class Renderer:
-    def __init__(self, update_screen, image, render_res, ray_depth, scene, camera) -> None:
+    def __init__(self, update_screen, image, render_res, ray_depth, scene, camera, sky_color) -> None:
         self.scene = scene
         self.update_screen = update_screen
         self.width, self.height = render_res
@@ -17,6 +18,7 @@ class Renderer:
         self.samples = 0
         self.buffer = array.array("f", [0.0] * (self.width * self.height * 3))
         self.image = image
+        self.sky_color = sky_color
 
     def calculate(self):
         i = 0
@@ -29,9 +31,9 @@ class Renderer:
                 self.buffer[i * 3 + 1] += color.g
                 self.buffer[i * 3 + 2] += color.b
 
-                r = self.buffer[i * 3 + 0] / self.samples
-                g = self.buffer[i * 3 + 1] / self.samples
-                b = self.buffer[i * 3 + 2] / self.samples
+                r = min(self.buffer[i * 3 + 0] / self.samples, 255)
+                g = min(self.buffer[i * 3 + 1] / self.samples, 255)
+                b = min(self.buffer[i * 3 + 2] / self.samples, 255)
 
                 #r, g, b = self.reinhard_tonemapping((r, g, b))
 
@@ -64,21 +66,17 @@ class Renderer:
                 hit_object = sphere
 
         if (hit_distance >= 5000.0):
-            return Color(163, 198, 255)
+            return self.sky_color
         if hit_object.is_emitter:
-            return hit_object.color
+            # return hit_object.color
+            return Color(255 * hit_object.intensity, 255 * hit_object.intensity, 255 * hit_object.intensity)
         if current_depth >= self.max_depth:
             return Color(0, 0, 0)
 
         hit_point = ray.origin + ray.direction * (hit_distance * 0.998)
         normal = hit_object.normal(hit_point)
 
-        random_point = Point3D.sample_in_hemisphere()
-        if random_point.dot(normal) < 0.0:
-            random_point = random_point.negate()
-        reflection_ray = Ray(hit_point, random_point.normalize())
-
-        #reflection_ray = Ray(hit_point, Point3D.reflect_vector(ray.direction, normal))
+        reflection_ray = Ray(hit_point, Point3D.reflect_vector(ray.direction, normal, hit_object.roughness))
         return_color = self.trace(reflection_ray, current_depth + 1)
 
         r = hit_object.color.r * return_color.r / 255
