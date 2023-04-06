@@ -1,7 +1,7 @@
 import math
 from PySide6.QtWidgets import *
 from PySide6.QtGui import *
-from pyray.point_3d import Point3D
+import pyray.point_3d as p3d
 from pyray.ray import Ray
 from pyray.color import Color
 import array
@@ -35,8 +35,6 @@ class Renderer:
                 g = min(self.buffer[i * 3 + 1] / self.samples, 255)
                 b = min(self.buffer[i * 3 + 2] / self.samples, 255)
 
-                #r, g, b = self.reinhard_tonemapping((r, g, b))
-
                 self.image.setPixel(w, h, QColor(r, g, b).rgb())
                 i += 1
 
@@ -50,7 +48,7 @@ class Renderer:
         ydir = ((y / self.height) * 2.0 - 1.0) * aspect
         zdir = 1.0 / math.tan(fov)
 
-        direction = Point3D([xdir, ydir, zdir]).normalize()
+        direction = p3d.normalize((xdir, ydir, zdir))
         ray = Ray(self.camera, direction)
 
         return self.trace(ray, 0)
@@ -72,10 +70,10 @@ class Renderer:
         if current_depth >= self.max_depth:
             return Color(0, 0, 0)
 
-        hit_point = ray.origin + ray.direction * (hit_distance * 0.998)
+        hit_point = p3d.add(ray.origin, p3d.mul(ray.direction, hit_distance * 0.998))
         normal = hit_object.normal(hit_point)
 
-        reflection_ray = Ray(hit_point, Point3D.reflect_vector(ray.direction, normal, hit_object.roughness))
+        reflection_ray = Ray(hit_point, p3d.reflect_vector(ray.direction, normal, hit_object.roughness))
         return_color = self.trace(reflection_ray, current_depth + 1)
 
         r = hit_object.color.r * return_color.r / 255
