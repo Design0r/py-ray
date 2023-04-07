@@ -9,11 +9,12 @@ from multiprocessing import Pool
 
 
 class Renderer:
-    def __init__(self, update_screen, image, render_res, ray_depth, scene, camera, sky_color) -> None:
+    def __init__(self, update_screen, image, render_res, msaa, ray_depth, scene, camera, sky_color) -> None:
         self.scene = scene
         self.update_screen = update_screen
         self.width, self.height = render_res
         self.camera = camera
+        self.msaa = msaa if msaa > 0 else 1
         self.max_depth = ray_depth
         self.samples = 0
         self.buffer = array.array("f", [0.0] * (self.width * self.height * 3))
@@ -26,32 +27,39 @@ class Renderer:
         self.samples += 1
         for h in range(self.height):
             for w in range(self.width):
-                color = self.compute_sample(w, h)
+                color = self.compute_sample(w, h, self.msaa)
                 self.buffer[i * 3 + 0] += color.r
                 self.buffer[i * 3 + 1] += color.g
                 self.buffer[i * 3 + 2] += color.b
 
-                r = min(self.buffer[i * 3 + 0] / self.samples, 255)
-                g = min(self.buffer[i * 3 + 1] / self.samples, 255)
-                b = min(self.buffer[i * 3 + 2] / self.samples, 255)
+                r: float = min(self.buffer[i * 3 + 0] / self.samples, 255)
+                g: float = min(self.buffer[i * 3 + 1] / self.samples, 255)
+                b: float = min(self.buffer[i * 3 + 2] / self.samples, 255)
 
                 self.image.setPixel(w, h, QColor(r, g, b).rgb())
                 i += 1
 
         self.update_screen()
 
-    def compute_sample(self, x, y):
-        fov = 160 * math.pi / 180
+    def compute_sample(self, x: int, y: int, samples: int):
         aspect = self.height / self.width
+        zdir = 1.0 / math.tan(self.camera.fov)
 
-        xdir = (x / self.width) * 2.0 - 1.0
-        ydir = ((y / self.height) * 2.0 - 1.0) * aspect
-        zdir = 1.0 / math.tan(fov)
+        color = Color(0, 0, 0)
+        for i in range(samples):
+            sub_x = (i % 2) / 2.0
+            sub_y = (i // 2) / 2.0
+            sub_pixel_x = x + sub_x
+            sub_pixel_y = y + sub_y
 
-        direction = p3d.normalize((xdir, ydir, zdir))
-        ray = Ray(self.camera, direction)
+            sub_xdir = (sub_pixel_x / self.width) * 2.0 - 1.0
+            sub_ydir = ((sub_pixel_y / self.height) * 2.0 - 1.0) * aspect
+            sub_direction = p3d.normalize((sub_xdir, sub_ydir, zdir))
+            sub_ray = Ray(self.camera.pos, sub_direction)
+            color += self.trace(sub_ray, 0)
 
-        return self.trace(ray, 0)
+        color /= samples
+        return color
 
     def trace(self, ray, current_depth):
         hit_distance = 5000.0

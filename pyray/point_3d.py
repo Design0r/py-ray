@@ -34,7 +34,7 @@ def negate(vec):
 def reflect_vector(i: tuple, n: tuple, roughness: float):
     # Calculate the reflection vector without roughness
     # i - (n * (2 * i.dot(n)))
-    reflection_vector = sub(i, mul(dot(i, n) * 2, n))
+    reflection_vector = sub(i, mul(n, dot(i, n) * 2))
     # Add random roughness
     roughness_vector = (random.uniform(-1, 1), random.uniform(-1, 1), random.uniform(-1, 1))
     roughness_vector = normalize(roughness_vector)

@@ -2,10 +2,10 @@ from PySide6.QtWidgets import *
 from PySide6.QtGui import *
 from PySide6.QtCore import *
 from pyray.color import Color
-from pyray.point_3d import Point3D
 from pyray.renderer import Renderer
 from pyray.scene import Scene
 from pyray.sphere import Sphere
+from pyray.camera import Camera
 from functools import partial
 import time
 
@@ -20,7 +20,7 @@ class WorkerThread(QThread):
         self.stop_flag = False
 
     def run(self):
-        samples = 0
+        samples = 1
         start_time = time.time()
         while not self.stop_flag:
             sample_time = time.perf_counter()
@@ -46,7 +46,8 @@ class Window(QWidget):
         self.viewport = None
         self.renderer = None
         self.scene = None
-        self.camera = (0.0, -2.0, 12.5)
+        self.camera = Camera((0.0, -2.0, 12.5), (0, 0, 0), 160)
+        self.msaa = 2
         self.ray_depth = 3
         self.render_thread = None
         self.sky_color = Color(184, 211, 254)
@@ -85,36 +86,49 @@ class Window(QWidget):
         render_res_h.returnPressed.connect(lambda: self.change_render_res(render_res_h.text(), axis="h"))
         resolution_layout.addWidget(render_res_h)
 
-        # Ray Depth Widget
-        ray_depth_widget = QWidget()
-        ray_depth_layout = QHBoxLayout()
-        ray_depth_widget.setLayout(ray_depth_layout)
-        settings_layout.addWidget(QLabel("Ray Depth:"))
-        settings_layout.addWidget(ray_depth_widget)
+        # MSAA Widget
+        msaa_widget = QWidget()
+        msaa_layout = QHBoxLayout()
+        msaa_widget.setLayout(msaa_layout)
+        settings_layout.addWidget(QLabel("Render Settings:"))
+        settings_layout.addWidget(msaa_widget)
 
+        msaa_layout.addWidget(QLabel("MSAA:"))
+        msaa = QLineEdit(f"{self.msaa}")
+        msaa_layout.addWidget(msaa)
+        msaa.returnPressed.connect(lambda: self.change_msaa(msaa.text()))
+        msaa_layout.addWidget(QLabel("Bounces:"))
         ray_depth = QLineEdit(f"{self.ray_depth}")
-        ray_depth_layout.addWidget(ray_depth)
+        msaa_layout.addWidget(ray_depth)
         ray_depth.returnPressed.connect(lambda: self.change_ray_depth(ray_depth.text()))
 
         # Camera Transforms
-        camera_transform_widget = QWidget()
-        camera_transform_layout = QHBoxLayout()
-        camera_transform_widget.setLayout(camera_transform_layout)
-        settings_layout.addWidget(QLabel("Camera Transform"))
-        settings_layout.addWidget(camera_transform_widget)
+        camera_widget = QWidget()
+        camera_layout = QGridLayout()
+        camera_widget.setLayout(camera_layout)
+        settings_layout.addWidget(QLabel("Camera"))
+        settings_layout.addWidget(camera_widget)
 
-        camera_transform_layout.addWidget(QLabel("x:"))
-        camera_t_x = QLineEdit(f"{self.camera[0] * -1}")
-        camera_transform_layout.addWidget(camera_t_x)
-        camera_transform_layout.addWidget(QLabel("y:"))
-        camera_t_y = QLineEdit(f"{self.camera[1] * -1}")
-        camera_transform_layout.addWidget(camera_t_y)
-        camera_transform_layout.addWidget(QLabel("z:"))
-        camera_t_z = QLineEdit(f"{self.camera[2] * -1}")
-        camera_transform_layout.addWidget(camera_t_z)
-        camera_t_x.returnPressed.connect(lambda: self.change_camera_transform(camera_t_x.text(), transform="translate", axis="x"))
-        camera_t_y.returnPressed.connect(lambda: self.change_camera_transform(camera_t_y.text(), transform="translate", axis="y"))
-        camera_t_z.returnPressed.connect(lambda: self.change_camera_transform(camera_t_z.text(), transform="translate", axis="z"))
+        camera_layout.addWidget(QLabel("x:"), 1, 0)
+        camera_t_x = QLineEdit(f"{self.camera.pos[0]}")
+        camera_layout.addWidget(camera_t_x, 1, 1)
+        camera_layout.addWidget(QLabel("y:"), 1, 2)
+        camera_t_y = QLineEdit(f"{self.camera.pos[1]*-1}")
+        camera_layout.addWidget(camera_t_y, 1, 3)
+        camera_layout.addWidget(QLabel("z:"), 1, 4)
+        camera_t_z = QLineEdit(f"{self.camera.pos[2]}")
+        camera_layout.addWidget(camera_t_z, 1, 5)
+
+        camera_layout.addWidget(QLabel("x"), 2, 0)
+        camera_layout.addWidget(QLineEdit("0"), 2, 1)
+        camera_layout.addWidget(QLabel("y"), 2, 2)
+        camera_layout.addWidget(QLineEdit("0"), 2, 3)
+        camera_layout.addWidget(QLabel("z"), 2, 4)
+        camera_layout.addWidget(QLineEdit("0"), 2, 5)
+
+        camera_t_x.returnPressed.connect(lambda: self.change_camera(camera_t_x.text(), attribute="translate", axis="x"))
+        camera_t_y.returnPressed.connect(lambda: self.change_camera(camera_t_y.text(), attribute="translate", axis="y"))
+        camera_t_z.returnPressed.connect(lambda: self.change_camera(camera_t_z.text(), attribute="translate", axis="z"))
 
         # Sky Color
         sky_color_widget = QWidget()
@@ -183,19 +197,22 @@ class Window(QWidget):
 
         self.init_renderer(restart=True)
 
+    def change_msaa(self, num):
+        self.msaa = int(num)
+        self.init_renderer(restart=True)
+
     def change_ray_depth(self, text):
         self.ray_depth = int(text)
         self.init_renderer(restart=True)
 
-    def change_camera_transform(self, text, transform=None, axis=None):
-        match transform, axis:
+    def change_camera(self, text, attribute=None, axis=None):
+        match attribute, axis:
             case "translate", "x":
-                self.camera = (float(text) * -1, self.camera[1], self.camera[2])
+                self.camera.pos = (float(text), self.camera.pos[1], self.camera.pos[2])
             case "translate", "y":
-                self.camera = (self.camera[0], float(text) * -1, self.camera[2])
+                self.camera.pos = (self.camera.pos[0], float(text)*-1, self.camera.pos[2])
             case "translate", "z":
-                self.camera = (self.camera[0], self.camera[2], float(text) * -1)
-
+                self.camera.pos = (self.camera.pos[0], self.camera.pos[1], float(text))
         self.init_renderer(restart=True)
 
     def change_sky_color(self, text, axis=None):
@@ -216,7 +233,7 @@ class Window(QWidget):
         grey = Color(180, 180, 180)
         match number:
             case 1:
-                sphere1 = Sphere((0.0, -3.5, 3.0), 2, white, 0.0, True, intensity=10)
+                sphere1 = Sphere((0.0, -3.5, 3.0), 2, white, 0.0, True, intensity=1)
                 sphere2 = Sphere((8.0, 0.0, 3.0), 6, red, 1.0, False)
                 sphere3 = Sphere((-8.0, 0.0, 3.0), 6, green, 1.0, False)
                 sphere4 = Sphere((0.0, 8.0, 3.0), 6, grey, 1.0, False)
@@ -226,7 +243,7 @@ class Window(QWidget):
                 sphere8 = Sphere((0.0, 0.0, -7.5), 6, grey, 0.2, False)
                 self.scene = Scene(sphere1, sphere2, sphere3, sphere4, sphere5, sphere6, sphere7, sphere8)
             case 2:
-                light_sphere = Sphere((0.0, -6.3, 3.0), 2, white, 1.0, True, intensity=10)
+                light_sphere = Sphere((0.0, -6.3, 3.0), 2, white, 1.0, True, intensity=7)
                 sphere2 = Sphere((1.5, -0.3, 3.0), 0.415, red, 0.0, False)
                 sphere3 = Sphere((-5.339, -1.948, -16.014), 6, green, 0.2, False)
                 ground_sphere = Sphere((0.0, 50.0, 3.0), 50, grey, 0.5, False)
@@ -243,7 +260,7 @@ class Window(QWidget):
 
     def init_renderer(self, restart=False):
         self.img = QImage(self.render_width, self.render_height, QImage.Format.Format_ARGB32)
-        self.renderer = Renderer(self.update_screen, self.img, (self.render_width, self.render_height), self.ray_depth, self.scene, self.camera, self.sky_color)
+        self.renderer = Renderer(self.update_screen, self.img, (self.render_width, self.render_height), self.msaa, self.ray_depth, self.scene, self.camera, self.sky_color)
 
         if restart and self.render_thread:
             self.stop_render_thread()
