@@ -1,12 +1,10 @@
 import math
 from PySide6.QtWidgets import *
 from PySide6.QtGui import *
-from numpy import int16
 import pyray.point_3d as p3d
 from pyray.ray import Ray
 from pyray.color import Color
 import array
-from multiprocessing import Pool
 
 
 class Renderer:

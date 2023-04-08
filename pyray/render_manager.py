@@ -75,13 +75,13 @@ class RenderManager:
                 self.scene = Scene(sphere1, sphere2, sphere3, sphere4, sphere5, sphere6, sphere7, sphere8)
             case 2:
                 light_sphere = Sphere((0.0, -6.3, 3.0), 2, white, 1.0, True, intensity=7)
-                sphere2 = Sphere((1.5, -0.3, 3.0), 0.415, red, 1.0, False)
+                sphere2 = Sphere((1.5, -0.3, 3.0), 0.415, red, 0.1, False)
                 sphere3 = Sphere((-5.339, -1.948, -16.014), 6, green, 0.2, False)
                 ground_sphere = Sphere((0.0, 50.0, 3.0), 50, grey, 0.5, False)
                 sphere5 = Sphere((0, -0.75, 3), 0.75, grey, 0.8, False)
-                sphere6 = Sphere((21, -2, 22), 11, green, 1.0, False)
+                sphere6 = Sphere((21, -2, 22), 11, green, 0.8, False)
                 # sphere7 = Sphere((-1.5, -1.95, 28.4), 6, white, True)
-                sphere8 = Sphere((-23.5, -2, 17.8), 8, grey, 1.0, False)
+                sphere8 = Sphere((-23.5, -2, 17.8), 8, grey, 0.6, False)
                 self.scene = Scene(light_sphere, ground_sphere, sphere2, sphere3, sphere8, sphere5, sphere6)
             case 3:
                 sphere1 = Sphere((0.0, -3.5, 3.0), 2, Color(255, 255, 255), 1.0, True)
