@@ -1,6 +1,7 @@
 import math
 from PySide6.QtWidgets import *
 from PySide6.QtGui import *
+from numpy import int16
 import pyray.point_3d as p3d
 from pyray.ray import Ray
 from pyray.color import Color
@@ -9,16 +10,16 @@ from multiprocessing import Pool
 
 
 class Renderer:
-    def __init__(self, update_screen, image, render_res, msaa, ray_depth, scene, camera, sky_color) -> None:
+    def __init__(self, update_screen, render_res, msaa, ray_depth, scene, camera, sky_color) -> None:
+        self.width, self.height = render_res
+        self.image = QImage(self.width, self.height, QImage.Format.Format_ARGB32)
         self.scene = scene
         self.update_screen = update_screen
-        self.width, self.height = render_res
         self.camera = camera
         self.msaa = msaa if msaa > 0 else 1
         self.max_depth = ray_depth
         self.samples = 0
         self.buffer = array.array("f", [0.0] * (self.width * self.height * 3))
-        self.image = image
         self.sky_color = sky_color
 
     def calculate(self):
@@ -27,7 +28,7 @@ class Renderer:
         self.samples += 1
         for h in range(self.height):
             for w in range(self.width):
-                color = self.compute_sample(w, h, self.msaa)
+                color = self.compute_sample(w, h)
                 self.buffer[i * 3 + 0] += color.r
                 self.buffer[i * 3 + 1] += color.g
                 self.buffer[i * 3 + 2] += color.b
@@ -39,14 +40,14 @@ class Renderer:
                 self.image.setPixel(w, h, QColor(r, g, b).rgb())
                 i += 1
 
-        self.update_screen()
+        self.update_screen(self.image)
 
-    def compute_sample(self, x: int, y: int, samples: int):
+    def compute_sample(self, x: int, y: int):
         aspect = self.height / self.width
         zdir = 1.0 / math.tan(self.camera.fov)
 
         color = Color(0, 0, 0)
-        for i in range(samples):
+        for i in range(self.msaa):
             sub_x = (i % 2) / 2.0
             sub_y = (i // 2) / 2.0
             sub_pixel_x = x + sub_x
@@ -58,7 +59,7 @@ class Renderer:
             sub_ray = Ray(self.camera.pos, sub_direction)
             color += self.trace(sub_ray, 0)
 
-        color /= samples
+        color /= self.msaa
         return color
 
     def trace(self, ray, current_depth):
