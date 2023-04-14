@@ -2,14 +2,13 @@ from PySide6.QtGui import QImage, QColor
 from pyray.camera import Camera
 from pyray.ray import Ray
 import glm
-import random
 import numpy as np
 
 
 class Renderer:
     def __init__(self, update_screen, render_res, msaa, ray_depth, scene, camera, sky_color) -> None:
         self.width, self.height = render_res
-        self.image = QImage(self.width, self.height, QImage.Format.Format_ARGB32)
+        self.image = QImage(self.width, self.height, QImage.Format.Format_RGB32)
         self.scene = scene
         self.update_screen = update_screen
         self.camera: Camera = camera
@@ -86,8 +85,6 @@ class Renderer:
 
     @staticmethod
     def reflect_vector(i: glm.vec3, n: glm.vec3, roughness: float):
-        # Calculate the reflection vector without roughness
-        # i - (n * (2 * i.dot(n)))
         reflection_vector = glm.reflect(i, n)
 
         # Add random roughness

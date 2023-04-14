@@ -14,10 +14,10 @@ class Sphere(Object):
         self.intensity: float = intensity
 
     def intersect(self, ray: Ray) -> float:
-        v: glm.vec3 = ray.origin - self.center
+        cam_to_sphere_vec: glm.vec3 = ray.origin - self.center
         a: float = glm.dot(ray.direction, ray.direction)
-        b: float = 2 * glm.dot(ray.direction, v)
-        c: float = glm.dot(v, v) - self.radius * self.radius
+        b: float = 2 * glm.dot(ray.direction, cam_to_sphere_vec)
+        c: float = glm.dot(cam_to_sphere_vec, cam_to_sphere_vec) - self.radius * self.radius
 
         discriminant: float = (b*b) - (4.0 * a * c)
         if discriminant > 0:
@@ -28,6 +28,7 @@ class Sphere(Object):
                 return x1
             elif x1 < 0 and x2 >= 0:
                 return x2
+
         return -1.0
 
     def normal(self, point: glm.vec3):
