@@ -121,8 +121,8 @@ class Window(QWidget):
         load_scene_2_btn.clicked.connect(lambda: self.render_manager.load_scene(2))
         settings_layout.addWidget(load_scene_2_btn)
 
-        load_scene_3_btn = QPushButton("Load Scene 3")
-        load_scene_3_btn.clicked.connect(lambda: self.render_manager.load_scene(3))
+        load_scene_3_btn = QPushButton("Start Profiling")
+        load_scene_3_btn.clicked.connect(lambda: self.render_manager.profiling())
         settings_layout.addWidget(load_scene_3_btn)
 
         start_render = QPushButton(text="Render")

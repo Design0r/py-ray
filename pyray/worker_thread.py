@@ -1,6 +1,4 @@
 from PySide6.QtCore import QThread, Signal
-from PySide6.QtGui import QImage, QColor
-from PySide6.QtCore import Qt
 import time
 
 

@@ -1,10 +1,9 @@
-import math
-from PySide6.QtWidgets import *
-from PySide6.QtGui import *
-import pyray.point_3d as p3d
+from PySide6.QtGui import QImage, QColor
+from pyray.camera import Camera
 from pyray.ray import Ray
-from pyray.color import Color
-import array
+import glm
+import random
+import numpy as np
 
 
 class Renderer:
@@ -13,12 +12,12 @@ class Renderer:
         self.image = QImage(self.width, self.height, QImage.Format.Format_ARGB32)
         self.scene = scene
         self.update_screen = update_screen
-        self.camera = camera
-        self.msaa = msaa if msaa > 0 else 1
-        self.max_depth = ray_depth
-        self.samples = 0
-        self.buffer = array.array("f", [0.0] * (self.width * self.height * 3))
-        self.sky_color = sky_color
+        self.camera: Camera = camera
+        self.msaa: int = msaa if msaa > 0 else 1
+        self.max_depth: int = ray_depth
+        self.samples: int = 0
+        self.buffer = np.empty(self.width * self.height, dtype=glm.vec3)
+        self.sky_color: glm.vec3 = sky_color
 
     def calculate(self):
         i = 0
@@ -26,25 +25,24 @@ class Renderer:
         self.samples += 1
         for h in range(self.height):
             for w in range(self.width):
-                color = self.compute_sample(w, h)
-                self.buffer[i * 3 + 0] += color.r
-                self.buffer[i * 3 + 1] += color.g
-                self.buffer[i * 3 + 2] += color.b
+                color: glm.vec3 = self.compute_sample(w, h)
 
-                r: float = min(self.buffer[i * 3 + 0] / self.samples, 255)
-                g: float = min(self.buffer[i * 3 + 1] / self.samples, 255)
-                b: float = min(self.buffer[i * 3 + 2] / self.samples, 255)
+                if self.buffer[i]:
+                    self.buffer[i] += color
+                else:
+                    self.buffer[i] = color
 
-                self.image.setPixel(w, h, QColor(r, g, b).rgb())
+                color = glm.min(self.buffer[i] / self.samples, glm.vec3(255, 255, 255))
+                self.image.setPixel(w, h, QColor(color.x, color.y, color.z).rgb())
                 i += 1
 
         self.update_screen(self.image)
 
     def compute_sample(self, x: int, y: int):
         aspect = self.height / self.width
-        zdir = 1.0 / math.tan(self.camera.fov)
+        zdir = 1.0 / glm.tan(self.camera.fov)
 
-        color = Color(0, 0, 0)
+        color = glm.vec3(0, 0, 0)
         for i in range(self.msaa):
             sub_x = (i % 2) / 2.0
             sub_y = (i // 2) / 2.0
@@ -53,7 +51,7 @@ class Renderer:
 
             sub_xdir = (sub_pixel_x / self.width) * 2.0 - 1.0
             sub_ydir = ((sub_pixel_y / self.height) * 2.0 - 1.0) * aspect
-            sub_direction = p3d.normalize((sub_xdir, sub_ydir, zdir))
+            sub_direction = glm.normalize(glm.vec3(sub_xdir, sub_ydir, zdir))
             sub_ray = Ray(self.camera.pos, sub_direction)
             color += self.trace(sub_ray, 0)
 
@@ -70,21 +68,29 @@ class Renderer:
                 hit_distance = intersect
                 hit_object = sphere
 
-        if (hit_distance >= 5000.0):
+        if hit_distance >= 5000.0:
             return self.sky_color
         if hit_object.is_emitter:
             return hit_object.color * hit_object.intensity
         if current_depth >= self.max_depth:
-            return Color(0, 0, 0)
+            return glm.vec3(0.0, 0.0, 0.0)
 
-        hit_point = p3d.add(ray.origin, p3d.mul(ray.direction, hit_distance * 0.998))
+        hit_point = ray.origin + (ray.direction * hit_distance * 0.998)
         normal = hit_object.normal(hit_point)
 
-        reflection_ray = Ray(hit_point, p3d.reflect_vector(ray.direction, normal, hit_object.roughness))
+        reflection_ray = Ray(hit_point, self.reflect_vector(ray.direction, normal, hit_object.roughness))
         return_color = self.trace(reflection_ray, current_depth + 1)
 
-        r = hit_object.color.r * return_color.r / 255
-        g = hit_object.color.g * return_color.g / 255
-        b = hit_object.color.b * return_color.b / 255
+        color = return_color * hit_object.color / 255.0
+        return color
 
-        return Color(r, g, b)
+    @staticmethod
+    def reflect_vector(i: glm.vec3, n: glm.vec3, roughness: float):
+        # Calculate the reflection vector without roughness
+        # i - (n * (2 * i.dot(n)))
+        reflection_vector = glm.reflect(i, n)
+
+        # Add random roughness
+        roughness_vector = glm.sphericalRand(1)
+        reflection_vector += roughness_vector * roughness
+        return reflection_vector
