@@ -18,9 +18,15 @@ class WorkerThread(QThread):
             sample_time = time.perf_counter()
             self.renderer.calculate()
 
-            self.progress_signal.emit((samples, time.perf_counter() - sample_time, time.time() - start_time))
+            self.progress_signal.emit(
+                (
+                    samples,
+                    time.perf_counter() - sample_time,
+                    time.time() - start_time,
+                )
+            )
             samples += 1
-            self.msleep(10)
+            self.msleep(5)
         message = "Thread finished"
         self.finished_signal.emit(message)
 

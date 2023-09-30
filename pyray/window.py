@@ -1,5 +1,13 @@
 from typing import Tuple
-from PySide6.QtWidgets import QLabel, QWidget, QHBoxLayout, QVBoxLayout, QGridLayout, QLineEdit, QPushButton
+from PySide6.QtWidgets import (
+    QLabel,
+    QWidget,
+    QHBoxLayout,
+    QVBoxLayout,
+    QGridLayout,
+    QLineEdit,
+    QPushButton,
+)
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtCore import Qt
 from pyray.render_manager import RenderManager
@@ -12,7 +20,9 @@ class Window(QWidget):
         self.viewport_width, self.viewport_height = 700, 700
 
         self.viewport = None
-        self.render_manager = RenderManager(self.update_screen, self.update_progress_label)
+        self.render_manager = RenderManager(
+            self.update_screen, self.update_progress_label
+        )
 
         self.init_ui()
         self.init_renderer()
@@ -28,7 +38,9 @@ class Window(QWidget):
         self.viewport.setFixedSize(self.viewport_width, self.viewport_height)
 
         settings_widget = QWidget()
-        settings_widget.setFixedSize(self.window_width - self.viewport_width, self.viewport_height)
+        settings_widget.setFixedSize(
+            self.window_width - self.viewport_width, self.viewport_height
+        )
         settings_layout = QVBoxLayout()
 
         # Render Resolution Fields
@@ -40,12 +52,16 @@ class Window(QWidget):
 
         resolution_layout.addWidget(QLabel("w:"))
         render_res_w = QLineEdit(f"{self.render_manager.render_width}")
-        render_res_w.returnPressed.connect(lambda: self.change_render_res(render_res_w.text(), axis="w"))
+        render_res_w.returnPressed.connect(
+            lambda: self.change_render_res(render_res_w.text(), axis="w")
+        )
         resolution_layout.addWidget(render_res_w)
 
         resolution_layout.addWidget(QLabel("h:"))
         render_res_h = QLineEdit(f"{self.render_manager.render_height}")
-        render_res_h.returnPressed.connect(lambda: self.change_render_res(render_res_h.text(), axis="h"))
+        render_res_h.returnPressed.connect(
+            lambda: self.change_render_res(render_res_h.text(), axis="h")
+        )
         resolution_layout.addWidget(render_res_h)
 
         # MSAA Widget
@@ -88,9 +104,21 @@ class Window(QWidget):
         camera_layout.addWidget(QLabel("z"), 2, 4)
         camera_layout.addWidget(QLineEdit("0"), 2, 5)
 
-        camera_t_x.returnPressed.connect(lambda: self.change_camera(camera_t_x.text(), attribute="translate", axis="x"))
-        camera_t_y.returnPressed.connect(lambda: self.change_camera(camera_t_y.text(), attribute="translate", axis="y"))
-        camera_t_z.returnPressed.connect(lambda: self.change_camera(camera_t_z.text(), attribute="translate", axis="z"))
+        camera_t_x.returnPressed.connect(
+            lambda: self.change_camera(
+                camera_t_x.text(), attribute="translate", axis="x"
+            )
+        )
+        camera_t_y.returnPressed.connect(
+            lambda: self.change_camera(
+                camera_t_y.text(), attribute="translate", axis="y"
+            )
+        )
+        camera_t_z.returnPressed.connect(
+            lambda: self.change_camera(
+                camera_t_z.text(), attribute="translate", axis="z"
+            )
+        )
 
         # Sky Color
         sky_color_widget = QWidget()
@@ -108,9 +136,15 @@ class Window(QWidget):
         sky_color_layout.addWidget(QLabel("b:"))
         sky_color_b = QLineEdit(f"{self.render_manager.sky_color.b}")
         sky_color_layout.addWidget(sky_color_b)
-        sky_color_r.returnPressed.connect(lambda: self.change_sky_color(sky_color_r.text(), axis="r"))
-        sky_color_g.returnPressed.connect(lambda: self.change_sky_color(sky_color_g.text(), axis="g"))
-        sky_color_b.returnPressed.connect(lambda: self.change_sky_color(sky_color_b.text(), axis="b"))
+        sky_color_r.returnPressed.connect(
+            lambda: self.change_sky_color(sky_color_r.text(), axis="r")
+        )
+        sky_color_g.returnPressed.connect(
+            lambda: self.change_sky_color(sky_color_g.text(), axis="g")
+        )
+        sky_color_b.returnPressed.connect(
+            lambda: self.change_sky_color(sky_color_b.text(), axis="b")
+        )
 
         # load Scene Buttons
         load_scene_1_btn = QPushButton("Load Scene 1")
@@ -169,11 +203,23 @@ class Window(QWidget):
     def change_camera(self, text, attribute=None, axis=None):
         match attribute, axis:
             case "translate", "x":
-                self.render_manager.camera.pos = (float(text), self.render_manager.camera.pos[1], self.render_manager.camera.pos[2])
+                self.render_manager.camera.pos = (
+                    float(text),
+                    self.render_manager.camera.pos[1],
+                    self.render_manager.camera.pos[2],
+                )
             case "translate", "y":
-                self.render_manager.camera.pos = (self.render_manager.camera.pos[0], float(text)*-1, self.render_manager.camera.pos[2])
+                self.render_manager.camera.pos = (
+                    self.render_manager.camera.pos[0],
+                    float(text) * -1,
+                    self.render_manager.camera.pos[2],
+                )
             case "translate", "z":
-                self.render_manager.camera.pos = (self.render_manager.camera.pos[0], self.render_manager.camera.pos[1], float(text))
+                self.render_manager.camera.pos = (
+                    self.render_manager.camera.pos[0],
+                    self.render_manager.camera.pos[1],
+                    float(text),
+                )
         self.render_manager.init_renderer(restart=True)
 
     def change_sky_color(self, text, axis=None):
@@ -201,7 +247,11 @@ class Window(QWidget):
 
     def update_progress_label(self, update):
         samples, sample_time, overall_time = update
-        self.progress_label.setText(f"\nProgress:\n\nSamples: {samples} \nTime per Frame: {sample_time:.3f}s\nOverall Time: {overall_time:.0f}s")
+        self.progress_label.setText(
+            f"\nProgress:\n\nSamples: {samples} \nTime per Frame: {sample_time:.3f}s\nOverall Time: {overall_time:.0f}s"
+        )
 
     def update_screen(self, image: QImage):
-        self.viewport.setPixmap(QPixmap.fromImage(image.scaled(self.viewport_width, self.viewport_height)))
+        self.viewport.setPixmap(
+            QPixmap.fromImage(image.scaled(self.viewport_width, self.viewport_height))
+        )

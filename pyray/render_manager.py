@@ -29,8 +29,15 @@ class RenderManager:
         self.sky_color = glm.vec3(184, 211, 254)
 
     def init_renderer(self, restart=False):
-
-        self.renderer = Renderer(self.update_screen, (self.render_width, self.render_height), self.msaa, self.ray_depth, self.scene, self.camera, self.sky_color)
+        self.renderer = Renderer(
+            self.update_screen,
+            (self.render_width, self.render_height),
+            self.msaa,
+            self.ray_depth,
+            self.scene,
+            self.camera,
+            self.sky_color,
+        )
 
         if restart and self.render_thread:
             self.stop_render_thread()
@@ -47,16 +54,12 @@ class RenderManager:
         self.render_thread.wait()
 
     def profiling(self):
-        import cProfile
-        import pstats
+        from scalene import scalene_profiler
 
-        with cProfile.Profile() as pr:
-            for i in range(3):
-                self.renderer.calculate()
-        stats = pstats.Stats(pr)
-        stats.sort_stats(pstats.SortKey.TIME)
-        stats.print_stats()
-        stats.dump_stats(filename="render_profiling.prof")
+        scalene_profiler.start()
+        for i in range(30):
+            self.renderer.calculate()
+        scalene_profiler.stop()
 
     def load_scene(self, number: int) -> None:
         red = glm.vec3(217, 29, 29)
@@ -66,7 +69,9 @@ class RenderManager:
         blue = glm.vec3(39, 60, 200)
         match number:
             case 1:
-                sphere1 = Sphere(glm.vec3(0.0, -3.5, 3.0), 2, white, 0.0, True, intensity=1)
+                sphere1 = Sphere(
+                    glm.vec3(0.0, -3.5, 3.0), 2, white, 0.0, True, intensity=1
+                )
                 sphere2 = Sphere(glm.vec3(8.0, 0.0, 3.0), 6, red, 1.0, False)
                 sphere3 = Sphere(glm.vec3(-8.0, 0.0, 3.0), 6, green, 1.0, False)
                 sphere4 = Sphere(glm.vec3(0.0, 8.0, 3.0), 6, grey, 1.0, False)
@@ -74,9 +79,20 @@ class RenderManager:
                 sphere6 = Sphere(glm.vec3(0.0, 1.5, 3.0), 0.75, green, 0.2, False)
                 sphere7 = Sphere(glm.vec3(0.0, 0.48, 3.0), 0.33, white, 1.0, True)
                 sphere8 = Sphere(glm.vec3(0.0, 0.0, -7.5), 6, grey, 0.2, False)
-                self.scene = Scene(sphere1, sphere2, sphere3, sphere4, sphere5, sphere6, sphere7, sphere8)
+                self.scene = Scene(
+                    sphere1,
+                    sphere2,
+                    sphere3,
+                    sphere4,
+                    sphere5,
+                    sphere6,
+                    sphere7,
+                    sphere8,
+                )
             case 2:
-                light_sphere = Sphere(glm.vec3(0.0, -20, 3.0), 10, white, 0.0, True, intensity=7)
+                light_sphere = Sphere(
+                    glm.vec3(0.0, -20, 3.0), 10, white, 0.0, True, intensity=7
+                )
                 red_sphere = Sphere(glm.vec3(1.5, -0.4, 3.0), 0.5, red, 0.1, False)
                 green_sphere = Sphere(glm.vec3(-2, -0.9, 3.0), 1, green, 1, False)
                 ground_sphere = Sphere(glm.vec3(0.0, 50.0, 3.0), 50, grey, 0.35, False)
@@ -84,9 +100,13 @@ class RenderManager:
                 # sphere6 = Sphere(glm.vec3(21, -2, 22), 11, green, 0.8, False)
                 # sphere7 = Sphere(glm.vec3(-1.5, -1.95, 28.4), 6, white, True)
                 # sphere8 = Sphere(glm.vec3(-23.5, -2, 17.8), 8, grey, 0.6, False)
-                self.scene = Scene(light_sphere, ground_sphere, red_sphere, green_sphere, middle_sphere)
+                self.scene = Scene(
+                    light_sphere, ground_sphere, red_sphere, green_sphere, middle_sphere
+                )
             case 3:
-                sphere1 = Sphere(glm.vec3(0.0, -3.5, 3.0), 2, glm.vec3(255, 255, 255), 1.0, True)
+                sphere1 = Sphere(
+                    glm.vec3(0.0, -3.5, 3.0), 2, glm.vec3(255, 255, 255), 1.0, True
+                )
                 self.scene = Scene(sphere1)
 
         self.init_renderer(restart=True)

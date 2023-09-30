@@ -6,7 +6,9 @@ import numpy as np
 
 
 class Renderer:
-    def __init__(self, update_screen, render_res, msaa, ray_depth, scene, camera, sky_color) -> None:
+    def __init__(
+        self, update_screen, render_res, msaa, ray_depth, scene, camera, sky_color
+    ) -> None:
         self.width, self.height = render_res
         self.image = QImage(self.width, self.height, QImage.Format.Format_RGB32)
         self.scene = scene
@@ -67,7 +69,7 @@ class Renderer:
                 hit_distance = intersect
                 hit_object = sphere
 
-        if hit_distance >= 5000.0:
+        if hit_distance >= 5000.0 or not hit_object:
             return self.sky_color
         if hit_object.is_emitter:
             return hit_object.color * hit_object.intensity
@@ -77,7 +79,9 @@ class Renderer:
         hit_point = ray.origin + (ray.direction * hit_distance * 0.998)
         normal = hit_object.normal(hit_point)
 
-        reflection_ray = Ray(hit_point, self.reflect_vector(ray.direction, normal, hit_object.roughness))
+        reflection_ray = Ray(
+            hit_point, self.reflect_vector(ray.direction, normal, hit_object.roughness)
+        )
         return_color = self.trace(reflection_ray, current_depth + 1)
 
         color = return_color * hit_object.color / 255.0

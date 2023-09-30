@@ -5,29 +5,36 @@ import glm
 
 
 class Sphere(Object):
-    def __init__(self, center: glm.vec3, radius: float, color: glm.vec3, roughness: float, is_emitter: bool, intensity=1) -> None:
-        self.center: glm.vec3 = center
-        self.radius: float = radius
-        self.color: glm.vec3 = color
-        self.roughness: float = roughness
-        self.is_emitter: bool = is_emitter
-        self.intensity: float = intensity
+    def __init__(
+        self,
+        center: glm.vec3,
+        radius: float,
+        color: glm.vec3,
+        roughness: float,
+        is_emitter: bool,
+        intensity=1,
+    ) -> None:
+        self.center = center
+        self.radius_sq = radius * radius  # Precompute squared radius
+        self.color = color
+        self.roughness = roughness
+        self.is_emitter = is_emitter
+        self.intensity = intensity
 
     def intersect(self, ray: Ray) -> float:
-        cam_to_sphere_vec: glm.vec3 = ray.origin - self.center
-        a: float = glm.dot(ray.direction, ray.direction)
-        b: float = 2 * glm.dot(ray.direction, cam_to_sphere_vec)
-        c: float = glm.dot(cam_to_sphere_vec, cam_to_sphere_vec) - self.radius * self.radius
+        cam_to_sphere_vec = ray.origin - self.center
+        a = glm.dot(ray.direction, ray.direction)
+        b = 2.0 * glm.dot(ray.direction, cam_to_sphere_vec)
+        c = glm.dot(cam_to_sphere_vec, cam_to_sphere_vec) - self.radius_sq
 
-        discriminant: float = (b*b) - (4.0 * a * c)
+        discriminant = b * b - 4.0 * a * c
         if discriminant > 0:
-            x1: float = (-b - glm.sqrt(discriminant)) / (2.0 * a)
-            x2: float = (-b + glm.sqrt(discriminant)) / (2.0 * a)
+            sqrt_discriminant = glm.sqrt(discriminant)
+            x1 = (-b - sqrt_discriminant) / (2.0 * a)
+            x2 = (-b + sqrt_discriminant) / (2.0 * a)
 
             if x1 >= 0 and x2 >= 0:
-                return x1
-            elif x1 < 0 and x2 >= 0:
-                return x2
+                return min(x1, x2)  # Return the smallest positive root
 
         return -1.0
 
